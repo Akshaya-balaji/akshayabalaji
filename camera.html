@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera Image Upload</title>
+</head>
+<body>
+  <h1>Camera Image Upload</h1>
+  <video id="video" width="640" height="480" autoplay></video>
+  <br>
+  <button id="capture-btn">Capture Image</button>
+  <br><br>
+  <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+  <br>
+  <form id="upload-form" action="http://10.0.12.22:8000/upload" method="post" enctype="multipart/form-data">
+    <input type="file" id="image" name="file" accept="image/png, image/jpeg" required>
+    <br><br>
+    <button type="submit">Upload Image</button>
+  </form>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture-btn');
+    const uploadForm = document.getElementById('upload-form');
+
+    // Access the camera and stream the video
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+      }
+    }
+
+    // Initialize camera on page load
+    window.onload = () => {
+      initCamera();
+    };
+
+    // Event listener for capture button
+    captureButton.addEventListener('click', async () => {
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+      const formData = new FormData();
+      formData.append('file', blob, 'captured_image.jpg');
+      fetch(uploadForm.action, {
+        method: 'POST',
+        body: formData
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      }).then(data => {
+        console.log('Response from server:', data);
+      }).catch(error => {
+        console.error('Error uploading image:', error);
+      });
+    });
+  </script>
+</body>
+</html>
